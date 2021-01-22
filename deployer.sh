@@ -52,21 +52,36 @@ touch "$deploy_script"
 
 # Accept the git repository link
 sleep 1
-printf "${YELLOW}Please enter the git repository link (without clone command).${NOCOLOR}"
+printf "${YELLOW}Please enter the git repository SSH link (without clone command).${NOCOLOR}"
 read -r git_repo
-clone_path=${git_repo/github.com/hostname}
+repo_folder_name=$(basename -s .git "$git_repo");
+clone_path="${git_repo/\github.com/$hostname}"
 sleep 1
 printf "${YELLOW}Initializing git in cwd.${NOCOLOR}"
+
 cd "$cwd" || exit
 git init
 git remote add origin "$git_repo"
 
 
+sleep 1
+printf "${YELLOW}Please enter the absolute path (/srv/tracker/pim/) of your app root directory.${NOCOLOR}"
+read -r app_root
+base_folder_name=$(basename "$app_root")
+dir_name=$(dirname "$app_root")
+mv_final_path="$dir_name/$base_folder_name"
 #write to deployer script
+#//TODO Make the name of the backup folder dynamic
 {
   echo "#!/bin/bash"
-  echo "git clone $clone_path"
-  echo "mkdir done"
+  echo "rm -r $repo_folder_name >& rm-existing-clone.txt"
+  echo "git clone $clone_path >& clone.txt"
+  echo "rm -r $dir_name/latest-backup >& rm-backup.txt"
+  echo "cp -R $app_root $dir_name/latest-backup >& backup.txt"
+  echo "rm -r $app_root >& rm-app.txt"
+  echo "cp -R $repo_folder_name $mv_final_path >& cp.txt"
+  echo "chmod -R 775 $mv_final_path"
+  echo "touch script_ran.txt"
 } >> "$deploy_script"
 
 chmod +x "$deploy_script"
@@ -82,7 +97,7 @@ command -v jq >/dev/null 2>&1 ||
 }
 
 sleep 1
-printf "${GREEN}Create webhook config json${NOCOLOR}"
+printf "${GREEN}Creating webhook config json${NOCOLOR}"
 jq -n --arg id "$app_name" \
       --arg cwd "$cwd" \
       --arg deployer "$deploy_script" \
@@ -91,7 +106,7 @@ jq -n --arg id "$app_name" \
 '[{"id": $id,"execute-command": $deploy_script,"command-working-directory": $cwd,"response-message": "Executing deploy script...","trigger-rule": {"match": {"type": "payload-hash-sha1","secret": $secret,"parameter": {"source": "header","name": "X-Hub-Signature"}}}}]' > "$hjson"
 
 sleep 1
-printf "${GREEN} Copied webhook to etc.${NOCOLOR}"
+printf "${GREEN}Copied webhook to etc.${NOCOLOR}"
 cp -R "$hjson" "/etc/webhook.conf"
 cd "$HOME" || exit
 
