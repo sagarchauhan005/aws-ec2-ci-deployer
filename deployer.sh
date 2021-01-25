@@ -10,12 +10,24 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
+printf "${GREEN}Please select the source of your git repository${NOCOLOR}"
+printf "${GREEN}Enter the number corresponding to it to continue${NOCOLOR}"
+printf "${GREEN}[1] Github${NOCOLOR}"
+printf "${GREEN}[2] Bitbucket${NOCOLOR}"
+read -r GIT_SOURCE
+
 # Accept the name of the app
 printf "${GREEN}Enter the name of the app you wish to deploy (avoid spaces and special character)${NOCOLOR}"
 read -r app_name
 
 #set hostname for ssh config
+if [[ "$GIT_SOURCE" = 1 ]]; then
 hostname="github.com-$app_name"
+fi
+
+if [[ "$GIT_SOURCE" = 2 ]]; then
+hostname="bitbucket.org-$app_name"
+fi
 
 # Handle dependencies
 printf "${YELLOW}Configuring deployment for $app_name.${NOCOLOR}"
@@ -55,7 +67,15 @@ sleep 1
 printf "${YELLOW}Please enter the git repository SSH link (without clone command).${NOCOLOR}"
 read -r git_repo
 repo_folder_name=$(basename -s .git "$git_repo");
+
+if [[ "$GIT_SOURCE" = 1 ]]; then
 clone_path="${git_repo/\github.com/$hostname}"
+fi
+
+if [[ "$GIT_SOURCE" = 2 ]]; then
+clone_path="${git_repo/\bitbucket.org/$hostname}"
+fi
+
 sleep 1
 printf "${YELLOW}Initializing git in cwd.${NOCOLOR}"
 
@@ -74,27 +94,36 @@ mv_final_path="$dir_name/$base_folder_name"
 #//TODO Make the name of the backup folder dynamic
 {
   echo "#!/bin/bash"
-  echo "rm -r $repo_folder_name >& rm-existing-clone.txt"
-  echo "git clone $clone_path >& clone.txt"
-  echo "rm -r $dir_name/latest-backup >& rm-backup.txt"
-  echo "cp -R $app_root $dir_name/latest-backup >& backup.txt"
-  echo "rm -r $app_root >& rm-app.txt"
-  echo "cp -R $repo_folder_name $mv_final_path >& cp.txt"
+  echo "exec 1> command.log 2>&1"
+  echo "set -x"
+  echo "rm -r $repo_folder_name"
+  echo "git clone $clone_path"
+  echo "rm -r $dir_name/latest-backup"
+  echo "cp -R $app_root $dir_name/latest-backup"
+  echo "rm -r $app_root"
+  echo "cp -R $repo_folder_name $mv_final_path"
   echo "chmod -R 775 $mv_final_path"
-  echo "touch script_ran.txt"
 } >> "$deploy_script"
 
 chmod +x "$deploy_script"
-
-sleep 1
-printf "${GREEN}Enter your secret key (Please make sure this is unqiue. You need to paste the same in github account)${NOCOLOR}"
-read -r secret
 
 # check jq dependencies
 command -v jq >/dev/null 2>&1 ||
 { echo >&2 "Jq is not installed. Installing..";
   apt install jq
 }
+
+sleep 1
+printf "${GREEN}Enter your server IP${NOCOLOR}"
+sleep 1
+read -r server_ip
+
+
+if [[ "$GIT_SOURCE" = 1 ]]; then
+
+sleep 1
+printf "${GREEN}Enter your secret key (Please make sure this is unqiue. You need to paste the same in github account)${NOCOLOR}"
+read -r secret
 
 sleep 1
 printf "${GREEN}Creating webhook config json${NOCOLOR}"
@@ -104,16 +133,34 @@ jq -n --arg id "$app_name" \
       --arg secret "$secret" \
       --arg deploy_script "$deploy_script" \
 '[{"id": $id,"execute-command": $deploy_script,"command-working-directory": $cwd,"response-message": "Executing deploy script...","trigger-rule": {"match": {"type": "payload-hash-sha1","secret": $secret,"parameter": {"source": "header","name": "X-Hub-Signature"}}}}]' > "$hjson"
+fi
+
+if [[ "$GIT_SOURCE" = 2 ]]; then
+
+sleep 1
+printf "${GREEN}Enter your secret key (Please make sure this is unqiue. This shall act as your API SECRET for webhook)${NOCOLOR}"
+read -r secret
+
+hash="$(echo -n "$secret" | md5sum )"
+
+printf "${GREEN}Creating webhook config json${NOCOLOR}"
+jq -n --arg id "$app_name" \
+      --arg cwd "$cwd" \
+      --arg deployer "$deploy_script" \
+      --arg hash "$hash" \
+      --arg deploy_script "$deploy_script" \
+'[{"id": $id,"execute-command": $deploy_script,"command-working-directory": $cwd,"response-message": "Executing deploy script...","trigger-rule": {"match": {"type": "value","value": $hash,"parameter": {"source": "url","name": "key"}}}}]' > "$hjson"
+
+sleep 1
+printf "${GREEN}Please copy the below webhook url. Paste the same in your bitbucket webhook${NOCOLOR}"
+echo "http://$server_ip:9000/hooks/$app_name?key=$hash"
+sleep 2
+fi
 
 sleep 1
 printf "${GREEN}Copied webhook to etc.${NOCOLOR}"
 cp -R "$hjson" "/etc/webhook.conf"
 cd "$HOME" || exit
-
-sleep 1
-printf "${GREEN}Enter your server IP${NOCOLOR}"
-sleep 1
-read -r server_ip
 
 # start webhook
 printf "${GREEN}Initializing webhook${NOCOLOR}"
@@ -129,15 +176,32 @@ keypath_pub="$HOME/.ssh/${hostname}_rsa.pub"
 
 printf "${GREEN}Just press enter, when asked for passphrase${NOCOLOR}"
 ssh-keygen -t rsa -C "$email" -f "$keypath"
-if [ $? -eq 0 ]; then
-cat >> ~/.ssh/config <<EOF
-Host $hostalias
-        Hostname github.com
-        User git
-        AddKeysToAgent yes
-    IdentitiesOnly yes
-        IdentityFile $keypath
+
+if [[ "$GIT_SOURCE" = 1 ]]; then
+  if [ $? -eq 0 ]; then
+    cat >> ~/.ssh/config <<EOF
+    Host $hostalias
+            Hostname github.com
+            User git
+            AddKeysToAgent yes
+        IdentitiesOnly yes
+            IdentityFile $keypath
 EOF
+  fi
+fi
+
+
+if [[ "$GIT_SOURCE" = 2 ]]; then
+  if [ $? -eq 0 ];then
+    cat >> ~/.ssh/config <<EOF
+    Host $hostalias
+            Hostname bitbucket.org
+            User git
+            AddKeysToAgent yes
+        IdentitiesOnly yes
+            IdentityFile $keypath
+EOF
+  fi
 fi
 
 # copy paste the keys in your github deploy keys section
