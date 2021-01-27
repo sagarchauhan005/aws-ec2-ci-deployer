@@ -62,6 +62,15 @@ mkdir "$cwd"
 touch "$hjson"
 touch "$deploy_script"
 
+sleep 1
+printf "${YELLOW}Please enter the branch name for this repo (eg : master, staging, feature etc).${NOCOLOR}"
+read -r branch_name
+
+if [ -z "${branch_name}" ]; then
+branch_name="master"
+fi
+
+
 # Accept the git repository link
 sleep 1
 printf "${YELLOW}Please enter the git repository SSH link (without clone command).${NOCOLOR}"
@@ -96,13 +105,13 @@ mv_final_path="$dir_name/$base_folder_name"
   echo "#!/bin/bash"
   echo "exec 1> command.log 2>&1"
   echo "set -x"
-  echo "rm -r $repo_folder_name"
-  echo "git clone $clone_path"
-  echo "rm -r $dir_name/latest-backup"
-  echo "cp -R $app_root $dir_name/latest-backup"
-  echo "rm -r $app_root"
-  echo "cp -R $repo_folder_name $mv_final_path"
-  echo "chmod -R 775 $mv_final_path"
+  echo "rm -r $repo_folder_name" # removes the the last clone copy folder
+  echo "git clone $clone_path" # clones the latest copy
+  echo "rm -r $dir_name/latest-backup" # remove the last backup copy
+  echo "cp -R $app_root $dir_name/latest-backup" # create a new backup of current folder
+  echo "rm -r $app_root" # delete the existing current working app dir
+  echo "cp -R $repo_folder_name $mv_final_path" # copy the new cloned dir to new app
+  echo "chmod -R 775 $mv_final_path" #change permission of new app folder
 } >> "$deploy_script"
 
 chmod +x "$deploy_script"
@@ -121,6 +130,8 @@ read -r server_ip
 
 if [[ "$GIT_SOURCE" = 1 ]]; then
 
+branch="refs/heads/$branch_name"
+
 sleep 1
 printf "${GREEN}Enter your secret key (Please make sure this is unqiue. You need to paste the same in github account)${NOCOLOR}"
 read -r secret
@@ -131,29 +142,36 @@ jq -n --arg id "$app_name" \
       --arg cwd "$cwd" \
       --arg deployer "$deploy_script" \
       --arg secret "$secret" \
+      --arg branch "$branch" \
       --arg deploy_script "$deploy_script" \
-'[{"id": $id,"execute-command": $deploy_script,"command-working-directory": $cwd,"response-message": "Executing deploy script...","trigger-rule": {"match": {"type": "payload-hash-sha1","secret": $secret,"parameter": {"source": "header","name": "X-Hub-Signature"}}}}]' > "$hjson"
+'[{"id": $id,"execute-command": $deploy_script,"command-working-directory": $cwd,"response-message": "Executing deploy script...","trigger-rule": {"and":[{"match": {"type": "payload-hash-sha1","secret": $secret,"parameter": {"source": "header","name": "X-Hub-Signature"}}}, {"match": {"type": "value","value": $branch,"parameter": {"source": "payload","name": "ref"}}}]} }]' > "$hjson"
 fi
 
 if [[ "$GIT_SOURCE" = 2 ]]; then
 
+branch="$branch_name"
 sleep 1
+# shellcheck disable=SC2059
 printf "${GREEN}Enter your secret key (Please make sure this is unqiue. This shall act as your API SECRET for webhook)${NOCOLOR}"
 read -r secret
 
-hash="$(echo -n "$secret" | md5sum )"
+hash="$(echo -n "$secret" | md5sum | awk '{print $1}')"
 
 printf "${GREEN}Creating webhook config json${NOCOLOR}"
 jq -n --arg id "$app_name" \
       --arg cwd "$cwd" \
       --arg deployer "$deploy_script" \
       --arg hash "$hash" \
+      --arg branch "$branch" \
       --arg deploy_script "$deploy_script" \
-'[{"id": $id,"execute-command": $deploy_script,"command-working-directory": $cwd,"response-message": "Executing deploy script...","trigger-rule": {"match": {"type": "value","value": $hash,"parameter": {"source": "url","name": "key"}}}}]' > "$hjson"
+'[{"id": $id,"execute-command": $deploy_script,"command-working-directory": $cwd,"response-message": "Executing deploy script...","trigger-rule": {"and":[{"match": {"type": "value","value": $hash,"parameter": {"source": "url","name": "key"}}}, {"match": {"type": "value","value": $branch,"parameter": {"source": "payload","name": "push.changes.0.new.name"}}}]}}]' > "$hjson"
 
 sleep 1
+# shellcheck disable=SC2059
 printf "${GREEN}Please copy the below webhook url. Paste the same in your bitbucket webhook${NOCOLOR}"
+echo "==============================================================================================="
 echo "http://$server_ip:9000/hooks/$app_name?key=$hash"
+echo "==============================================================================================="
 sleep 2
 fi
 
