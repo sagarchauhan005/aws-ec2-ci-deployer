@@ -105,12 +105,15 @@ mv_final_path="$dir_name/$base_folder_name"
   echo "#!/bin/bash"
   echo "exec 1> command.log 2>&1"
   echo "set -x"
-  echo "rm -r $repo_folder_name" # removes the the last clone copy folder
-  echo "git clone $clone_path" # clones the latest copy
+  #echo "rm -r $repo_folder_name" # removes the the last clone copy folder
+  #echo "git clone $clone_path" # clones the latest copy
   echo "rm -r $dir_name/latest-backup" # remove the last backup copy
   echo "cp -R $app_root $dir_name/latest-backup" # create a new backup of current folder
-  echo "rm -r $app_root" # delete the existing current working app dir
-  echo "cp -R $repo_folder_name $mv_final_path" # copy the new cloned dir to new app
+  #echo "rm -r $app_root" # delete the existing current working app dir
+  echo "cd $app_root || exit"
+  echo "git fetch --all"
+  echo "git checkout --force origin/$branch_name"
+  #echo "cp -R $repo_folder_name $mv_final_path" # copy the new cloned dir to new app
   echo "chmod -R 775 $mv_final_path" #change permission of new app folder
 } >> "$deploy_script"
 
