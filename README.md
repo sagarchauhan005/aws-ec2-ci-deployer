@@ -11,7 +11,7 @@ This helps you set up CI-CD framework on your EC2 instance free of cost.
 # How it works?
 
 - On every push made from your local system to your git repository, your repo provider (bitbucket or github) shall post a payload.
-- The payload is send as POST request to your webhook. This webhook is set up by the script.
+- The payload is sent as POST request to your webhook. This webhook is set up by the script.
 - The webhook constantly listens to any incoming requests and perform credentials and payload matching.
 - On a successful match, the code is pulled from the relevant branch and is deployed with zero downtime on your app.
 
