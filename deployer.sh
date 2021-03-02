@@ -232,7 +232,8 @@ printf "${GREEN} Please copy paste the below mentioned ssk keys and paste into y
 sleep 1
 cat "$keypath_pub"
 
-#restart webhook
-sleep 1
-printf "${GREEN} Restarted webhook.${NOCOLOR}"
-service webhook restart
+#update remote url
+cd $app_root || exit
+git remote set-url origin $clone_path
+
+printf "${GREEN} Remote url updated.${NOCOLOR}"
