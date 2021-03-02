@@ -107,8 +107,8 @@ mv_final_path="$dir_name/$base_folder_name"
   echo "set -x"
   #echo "rm -r $repo_folder_name" # removes the the last clone copy folder
   #echo "git clone $clone_path" # clones the latest copy
-  echo "rm -r $dir_name/version-backup/$app_root-latest-backup" # remove the last backup copy
-  echo "cp -R $app_root $dir_name/version-backup/$app_root-latest-backup" # create a new backup of current folder
+  echo "rm -r $dir_name/version-backup/$repo_folder_name-latest-backup" # remove the last backup copy
+  echo "cp -R $app_root $dir_name/version-backup/$repo_folder_name-latest-backup" # create a new backup of current folder
   #echo "rm -r $app_root" # delete the existing current working app dir
   echo "cd $app_root || exit"
   echo "git fetch --all"
