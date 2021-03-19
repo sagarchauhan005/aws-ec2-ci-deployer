@@ -22,6 +22,8 @@ This helps you set up CI-CD framework on your EC2 instance free of cost.
 
 # Important Steps
 
+- Use this command ONLY to clone any repo : 
+  `git clone --depth 1 -b <branch> <repo_url>`
 - Make sure to enter **SSH** git clone path and not **HTTPS** git clone path. 
 - Paste the webhook url in your repository settings under hooks. For bitbucket, make sure to check SSL checkbox, it shall not check for SSL url then
 - Copy and paste the public key that the scripts prints into your repository keys setting.

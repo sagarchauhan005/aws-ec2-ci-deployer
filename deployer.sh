@@ -111,8 +111,8 @@ mv_final_path="$dir_name/$base_folder_name"
   #echo "cp -R $app_root $dir_name/version-backup/$repo_folder_name-latest-backup" # create a new backup of current folder [Note required as of now, as its easier to push again then restore]
   #echo "rm -r $app_root" # delete the existing current working app dir
   echo "cd $app_root || exit"
-  echo "git fetch origin $branch_name"
-  echo "git checkout --force origin/$branch_name"
+  echo "git pull origin $branch_name"
+  #echo "git checkout --force origin/$branch_name"
   #echo "cp -R $repo_folder_name $mv_final_path" # copy the new cloned dir to new app
   echo "chmod -R 775 $mv_final_path" #change permission of new app folder
 } >> "$deploy_script"
