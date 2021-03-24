@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 
+# shellcheck disable=SC2059
 RED="\033[1;31m\n"
 NOCOLOR="\033[0m\n"
 YELLOW='\033[0;33m'
 GREEN='\033[0;32m'
 
 if [[ $EUID -ne 0 ]]; then
-   printf "${RED}This script must be run as root${NOCOLOR}"
-   exit 1
+  printf "${RED}This script must be run as root${NOCOLOR}"
+  exit 1
 fi
 
 printf "${GREEN}Please select the source of your git repository${NOCOLOR}"
@@ -21,12 +22,12 @@ printf "${GREEN}Enter the name of the app you wish to deploy (avoid spaces and s
 read -r app_name
 
 #set hostname for ssh config
-if [[ "$GIT_SOURCE" = 1 ]]; then
-hostname="github.com-$app_name"
+if [[ "$GIT_SOURCE" == 1 ]]; then
+  hostname="github.com-$app_name"
 fi
 
-if [[ "$GIT_SOURCE" = 2 ]]; then
-hostname="bitbucket.org-$app_name"
+if [[ "$GIT_SOURCE" == 2 ]]; then
+  hostname="bitbucket.org-$app_name"
 fi
 
 # Handle dependencies
@@ -34,31 +35,34 @@ printf "${YELLOW}Configuring deployment for $app_name.${NOCOLOR}"
 
 sleep 1
 command -v git >/dev/null 2>&1 ||
-{ echo >&2 "Git is not installed. Installing..";
-  yum install git
-}
+  {
+    echo >&2 "Git is not installed. Installing.."
+    yum install git
+  }
 
 command -v go >/dev/null 2>&1 ||
-{ echo >&2 "Go is not installed. Installing..";
-  apt  install golang-go
-}
+  {
+    echo >&2 "Go is not installed. Installing.."
+    apt install golang-go
+  }
 
 command -v webhook >/dev/null 2>&1 ||
-{ echo >&2 "Please wait while we install the package. Installing..";
-  sudo apt-get install webhook
-}
+  {
+    echo >&2 "Please wait while we install the package. Installing.."
+    sudo apt-get install webhook
+  }
 cd "$HOME" || exit
 
 # create config for webhooks
-app_hook="$HOME/$app_name/webhooks"
+app_hook="$HOME/webhooks"
 cwd="$HOME/$app_name/deployment/"
-hjson="$HOME/$app_name/webhooks/hooks.json"
-deploy_script="$HOME/$app_name/webhooks/deploy.sh"
+hjson="$app_hook/hooks.json"
+deploy_script="$app_hook/deploy.sh"
 
 rm -r "$app_name"
 mkdir "$app_name" || exit
-mkdir "$app_hook"
-mkdir "$cwd"
+mkdir "$app_hook" || exit
+mkdir "$cwd" || exit
 touch "$hjson"
 touch "$deploy_script"
 
@@ -67,22 +71,21 @@ printf "${YELLOW}Please enter the branch name for this repo (eg : master, stagin
 read -r branch_name
 
 if [ -z "${branch_name}" ]; then
-branch_name="master"
+  branch_name="master"
 fi
-
 
 # Accept the git repository link
 sleep 1
 printf "${YELLOW}Please enter the git repository SSH link (without clone command).${NOCOLOR}"
 read -r git_repo
-repo_folder_name=$(basename -s .git "$git_repo");
+repo_folder_name=$(basename -s .git "$git_repo")
 
-if [[ "$GIT_SOURCE" = 1 ]]; then
-clone_path="${git_repo/\github.com/$hostname}"
+if [[ "$GIT_SOURCE" == 1 ]]; then
+  clone_path="${git_repo/\github.com/$hostname}"
 fi
 
-if [[ "$GIT_SOURCE" = 2 ]]; then
-clone_path="${git_repo/\bitbucket.org/$hostname}"
+if [[ "$GIT_SOURCE" == 2 ]]; then
+  clone_path="${git_repo/\bitbucket.org/$hostname}"
 fi
 
 sleep 1
@@ -91,7 +94,6 @@ printf "${YELLOW}Initializing git in cwd.${NOCOLOR}"
 cd "$cwd" || exit
 git init
 git remote add origin "$git_repo"
-
 
 sleep 1
 printf "${YELLOW}Please enter the absolute path (/srv/tracker/pim/) of your app root directory.${NOCOLOR}"
@@ -111,71 +113,105 @@ mv_final_path="$dir_name/$base_folder_name"
   #echo "cp -R $app_root $dir_name/version-backup/$repo_folder_name-latest-backup" # create a new backup of current folder [Note required as of now, as its easier to push again then restore]
   #echo "rm -r $app_root" # delete the existing current working app dir
   echo "cd $app_root || exit"
-  echo "git pull origin $branch_name"
-  #echo "git checkout --force origin/$branch_name"
+  echo "git fetch origin $branch_name"
+  echo "git reset --hard origin/$branch_name"
   #echo "cp -R $repo_folder_name $mv_final_path" # copy the new cloned dir to new app
   echo "chmod -R 775 $mv_final_path" #change permission of new app folder
-} >> "$deploy_script"
+} >>"$deploy_script"
 
 chmod +x "$deploy_script"
 
 # check jq dependencies
 command -v jq >/dev/null 2>&1 ||
-{ echo >&2 "Jq is not installed. Installing..";
-  apt install jq
-}
+  {
+    echo >&2 "Jq is not installed. Installing.."
+    apt install jq
+  }
 
 sleep 1
 printf "${GREEN}Enter your server IP${NOCOLOR}"
 sleep 1
 read -r server_ip
 
+if [[ "$GIT_SOURCE" == 1 ]]; then
 
-if [[ "$GIT_SOURCE" = 1 ]]; then
+  branch="refs/heads/$branch_name"
 
-branch="refs/heads/$branch_name"
+  sleep 1
+  printf "${GREEN}Enter your secret key (Please make sure this is unqiue. You need to paste the same in github account)${NOCOLOR}"
+  read -r secret
 
-sleep 1
-printf "${GREEN}Enter your secret key (Please make sure this is unqiue. You need to paste the same in github account)${NOCOLOR}"
-read -r secret
+  sleep 1
+  printf "${GREEN}Creating webhook config json${NOCOLOR}"
 
-sleep 1
-printf "${GREEN}Creating webhook config json${NOCOLOR}"
-jq -n --arg id "$app_name" \
+  if [[ -s $hjson ]]; then
+
+    printf "${GREEN}Webhook config json file is NOT EMPTY. Updating the new config${NOCOLOR}"
+    jsonConfig=$(jq -n --arg id "$app_name" \
       --arg cwd "$cwd" \
       --arg deployer "$deploy_script" \
       --arg secret "$secret" \
       --arg branch "$branch" \
       --arg deploy_script "$deploy_script" \
-'[{"id": $id,"execute-command": $deploy_script,"command-working-directory": $cwd,"response-message": "Executing deploy script...","trigger-rule": {"and":[{"match": {"type": "payload-hash-sha1","secret": $secret,"parameter": {"source": "header","name": "X-Hub-Signature"}}}, {"match": {"type": "value","value": $branch,"parameter": {"source": "payload","name": "ref"}}}]} }]' > "$hjson"
+      '{"id": $id,"execute-command": $deploy_script,"command-working-directory": $cwd,"response-message": "Executing deploy script...","trigger-rule": {"and":[{"match": {"type": "payload-hash-sha1","secret": $secret,"parameter": {"source": "header","name": "X-Hub-Signature"}}}, {"match": {"type": "value","value": $branch,"parameter": {"source": "payload","name": "ref"}}}]} }')
+
+    updatedJsonConfig=$(jq --argjson updatedJson "$jsonConfig" --argjson groupInfo "$(<"$hjson")" '.[length] += $updatedJson' "$hjson")
+    echo "$updatedJsonConfig" >"$hjson"
+  else
+    printf "${GREEN}Webhook config json file is EMPTY. Adding the new config${NOCOLOR}"
+    jq -n --arg id "$app_name" \
+      --arg cwd "$cwd" \
+      --arg deployer "$deploy_script" \
+      --arg secret "$secret" \
+      --arg branch "$branch" \
+      --arg deploy_script "$deploy_script" \
+      '[{"id": $id,"execute-command": $deploy_script,"command-working-directory": $cwd,"response-message": "Executing deploy script...","trigger-rule": {"and":[{"match": {"type": "payload-hash-sha1","secret": $secret,"parameter": {"source": "header","name": "X-Hub-Signature"}}}, {"match": {"type": "value","value": $branch,"parameter": {"source": "payload","name": "ref"}}}]} }]' >"$hjson"
+  fi
+
 fi
 
-if [[ "$GIT_SOURCE" = 2 ]]; then
+if [[ "$GIT_SOURCE" == 2 ]]; then
 
-branch="$branch_name"
-sleep 1
-# shellcheck disable=SC2059
-printf "${GREEN}Enter your secret key (Please make sure this is unqiue. This shall act as your API SECRET for webhook)${NOCOLOR}"
-read -r secret
+  branch="$branch_name"
+  sleep 1
+  # shellcheck disable=SC2059
+  printf "${GREEN}Enter your secret key (Please make sure this is unqiue. This shall act as your API SECRET for webhook)${NOCOLOR}"
+  read -r secret
 
-hash="$(echo -n "$secret" | md5sum | awk '{print $1}')"
+  hash="$(echo -n "$secret" | md5sum | awk '{print $1}')"
 
-printf "${GREEN}Creating webhook config json${NOCOLOR}"
-jq -n --arg id "$app_name" \
+  printf "${GREEN}Creating webhook config json${NOCOLOR}"
+
+  if [[ -s $hjson ]]; then
+
+    printf "${GREEN}Webhook config json file is NOT EMPTY. Updating the new config${NOCOLOR}"
+    jsonConfig=$(jq -n --arg id "$app_name" \
       --arg cwd "$cwd" \
       --arg deployer "$deploy_script" \
       --arg hash "$hash" \
       --arg branch "$branch" \
       --arg deploy_script "$deploy_script" \
-'[{"id": $id,"execute-command": $deploy_script,"command-working-directory": $cwd,"response-message": "Executing deploy script...","trigger-rule": {"and":[{"match": {"type": "value","value": $hash,"parameter": {"source": "url","name": "key"}}}, {"match": {"type": "value","value": $branch,"parameter": {"source": "payload","name": "push.changes.0.new.name"}}}]}}]' > "$hjson"
+      '[{"id": $id,"execute-command": $deploy_script,"command-working-directory": $cwd,"response-message": "Executing deploy script...","trigger-rule": {"and":[{"match": {"type": "value","value": $hash,"parameter": {"source": "url","name": "key"}}}, {"match": {"type": "value","value": $branch,"parameter": {"source": "payload","name": "push.changes.0.new.name"}}}]}}]')
 
-sleep 1
-# shellcheck disable=SC2059
-printf "${GREEN}Please copy the below webhook url. Paste the same in your bitbucket webhook${NOCOLOR}"
-echo "==============================================================================================="
-echo "http://$server_ip:9000/hooks/$app_name?key=$hash"
-echo "==============================================================================================="
-sleep 2
+    updatedJsonConfig=$(jq --argjson updatedJson "$jsonConfig" --argjson groupInfo "$(<"$hjson")" '.[length] += $updatedJson' "$hjson")
+    echo "$updatedJsonConfig" >"$hjson"
+  else
+    printf "${GREEN}Webhook config json file is EMPTY. Adding the new config${NOCOLOR}"
+    jq -n --arg id "$app_name" \
+      --arg cwd "$cwd" \
+      --arg deployer "$deploy_script" \
+      --arg hash "$hash" \
+      --arg branch "$branch" \
+      --arg deploy_script "$deploy_script" \
+      '[{"id": $id,"execute-command": $deploy_script,"command-working-directory": $cwd,"response-message": "Executing deploy script...","trigger-rule": {"and":[{"match": {"type": "value","value": $hash,"parameter": {"source": "url","name": "key"}}}, {"match": {"type": "value","value": $branch,"parameter": {"source": "payload","name": "push.changes.0.new.name"}}}]}}]' >"$hjson"
+  fi
+  sleep 1
+  # shellcheck disable=SC2059
+  printf "${GREEN}Please copy the below webhook url. Paste the same in your bitbucket webhook${NOCOLOR}"
+  echo "==============================================================================================="
+  echo "http://$server_ip:9000/hooks/$app_name?key=$hash"
+  echo "==============================================================================================="
+  sleep 2
 fi
 
 sleep 1
@@ -198,9 +234,9 @@ keypath_pub="$HOME/.ssh/${hostname}_rsa.pub"
 printf "${GREEN}Just press enter, when asked for passphrase${NOCOLOR}"
 ssh-keygen -t rsa -C "$email" -f "$keypath"
 
-if [[ "$GIT_SOURCE" = 1 ]]; then
+if [[ "$GIT_SOURCE" == 1 ]]; then
   if [ $? -eq 0 ]; then
-    cat >> ~/.ssh/config <<EOF
+    cat >>~/.ssh/config <<EOF
     Host $hostalias
             Hostname github.com
             User git
@@ -211,10 +247,9 @@ EOF
   fi
 fi
 
-
-if [[ "$GIT_SOURCE" = 2 ]]; then
-  if [ $? -eq 0 ];then
-    cat >> ~/.ssh/config <<EOF
+if [[ "$GIT_SOURCE" == 2 ]]; then
+  if [ $? -eq 0 ]; then
+    cat >>~/.ssh/config <<EOF
     Host $hostalias
             Hostname bitbucket.org
             User git
