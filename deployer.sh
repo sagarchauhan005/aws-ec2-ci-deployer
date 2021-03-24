@@ -57,7 +57,7 @@ cd "$HOME" || exit
 app_hook="$HOME/webhooks"
 cwd="$HOME/$app_name/deployment/"
 hjson="$app_hook/hooks.json"
-deploy_script="$app_hook/deploy.sh"
+deploy_script="$HOME/$app_name/deploy.sh"
 
 rm -r "$app_name"
 mkdir "$app_name" || exit
