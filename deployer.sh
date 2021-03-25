@@ -65,10 +65,14 @@ hjson="$app_hook/hooks.json"
 deploy_script="$HOME/$app_name/deploy.sh"
 
 rm -r "$app_name"
-mkdir "$app_name" || exit
-mkdir "$app_hook" || exit
+mkdir -p "$app_name" || exit
+mkdir -p "$app_hook" || exit
 mkdir "$cwd" || exit
-touch "$hjson"
+if [ ! -f "$hjson" ]
+then
+    touch "$hjson"
+fi
+
 touch "$deploy_script"
 
 sleep 1
