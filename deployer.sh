@@ -281,7 +281,8 @@ printf "${GREEN} Restarted webhook.${NOCOLOR}"
 service webhook restart
 
 printf "${YELLOW}------------------------------------------------${NOCOLOR}"
-printf "${YELLOW}Important Information${NOCOLOR}"
+printf "${RED}Important Information${NOCOLOR}"
+printf "${GREEN}* Check is Host key is added in known hosts.${NOCOLOR}"
 printf "${GREEN}* Make sure AWS Port are allowed.${NOCOLOR}"
 printf "${GREEN}* In case webhook doesn't match, try restarting service webhook ${NOCOLOR}"
 printf "${GREEN}* In case webhook doesn't match, try restarting ssh : service ssh restart${NOCOLOR}"
