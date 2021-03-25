@@ -102,7 +102,6 @@ base_folder_name=$(basename "$app_root")
 dir_name=$(dirname "$app_root")
 mv_final_path="$dir_name/$base_folder_name"
 #write to deployer script
-#//TODO Make the name of the backup folder dynamic
 {
   echo "#!/bin/bash"
   echo "exec 1> command.log 2>&1"
@@ -114,7 +113,7 @@ mv_final_path="$dir_name/$base_folder_name"
   #echo "rm -r $app_root" # delete the existing current working app dir
   echo "cd $app_root || exit"
   echo "git fetch origin $branch_name"
-  echo "git reset --hard origin/$branch_name"
+  echo "git checkout --force origin/$branch_name"
   #echo "cp -R $repo_folder_name $mv_final_path" # copy the new cloned dir to new app
   echo "chmod -R 775 $mv_final_path" #change permission of new app folder
 } >>"$deploy_script"
@@ -268,7 +267,10 @@ sleep 1
 cat "$keypath_pub"
 
 #update remote url
-cd $app_root || exit
-git remote set-url origin $clone_path
-
+cd "$app_root" || exit
+git remote set-url origin "$clone_path"
 printf "${GREEN} Remote url updated.${NOCOLOR}"
+
+sleep 1
+printf "${GREEN} Restarted webhook.${NOCOLOR}"
+service webhook restart
