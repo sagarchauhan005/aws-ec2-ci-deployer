@@ -12,14 +12,15 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
-printf "${GREEN}Allowing 9000 port for webhook${NOCOLOR}"
-sudo ufw allow $WEBHOOK_PORT/tcp
-
 printf "${GREEN}Please select the source of your git repository${NOCOLOR}"
 printf "${GREEN}Enter the number corresponding to it to continue${NOCOLOR}"
 printf "${GREEN}[1] Github${NOCOLOR}"
 printf "${GREEN}[2] Bitbucket${NOCOLOR}"
 read -r GIT_SOURCE
+
+sleep 1
+printf "${GREEN}Allowing 9000 port for webhook${NOCOLOR}"
+sudo ufw allow $WEBHOOK_PORT/tcp
 
 # Accept the name of the app
 printf "${GREEN}Enter the name of the app you wish to deploy (avoid spaces and special character)${NOCOLOR}"
