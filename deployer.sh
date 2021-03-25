@@ -199,7 +199,7 @@ if [[ "$GIT_SOURCE" == 2 ]]; then
       --arg hash "$hash" \
       --arg branch "$branch" \
       --arg deploy_script "$deploy_script" \
-      '[{"id": $id,"execute-command": $deploy_script,"command-working-directory": $cwd,"response-message": "Executing deploy script...","trigger-rule": {"and":[{"match": {"type": "value","value": $hash,"parameter": {"source": "url","name": "key"}}}, {"match": {"type": "value","value": $branch,"parameter": {"source": "payload","name": "push.changes.0.new.name"}}}]}}]')
+      '{"id": $id,"execute-command": $deploy_script,"command-working-directory": $cwd,"response-message": "Executing deploy script...","trigger-rule": {"and":[{"match": {"type": "value","value": $hash,"parameter": {"source": "url","name": "key"}}}, {"match": {"type": "value","value": $branch,"parameter": {"source": "payload","name": "push.changes.0.new.name"}}}]}}')
 
     updatedJsonConfig=$(jq --argjson updatedJson "$jsonConfig" --argjson groupInfo "$(<"$hjson")" '.[length] += $updatedJson' "$hjson")
     echo "$updatedJsonConfig" >"$hjson"
