@@ -5,11 +5,15 @@ RED="\033[1;31m\n"
 NOCOLOR="\033[0m\n"
 YELLOW='\033[0;33m'
 GREEN='\033[0;32m'
+WEBHOOK_PORT=9000
 
 if [[ $EUID -ne 0 ]]; then
   printf "${RED}This script must be run as root${NOCOLOR}"
   exit 1
 fi
+
+printf "${GREEN}Allowing 9000 port for webhook${NOCOLOR}"
+sudo ufw allow $WEBHOOK_PORT/tcp
 
 printf "${GREEN}Please select the source of your git repository${NOCOLOR}"
 printf "${GREEN}Enter the number corresponding to it to continue${NOCOLOR}"
@@ -274,3 +278,9 @@ printf "${GREEN} Remote url updated.${NOCOLOR}"
 sleep 1
 printf "${GREEN} Restarted webhook.${NOCOLOR}"
 service webhook restart
+
+printf "${YELLOW}------------------------------------------------${NOCOLOR}"
+printf "${YELLOW}Important Information${NOCOLOR}"
+printf "${GREEN}* Make sure AWS Port are allowed.${NOCOLOR}"
+printf "${GREEN}* In case webhook doesn't match, try restarting service webhook ${NOCOLOR}"
+printf "${GREEN}* In case webhook doesn't match, try restarting ssh : service ssh restart${NOCOLOR}"
