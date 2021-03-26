@@ -30,8 +30,11 @@ This helps you set up CI-CD framework on your EC2 instance free of cost.
   - ` git fetch origin <branch>`
 - This shall add the new host key generated in your known_hosts file for future push or pull.
 - [**Important**] If it is a front-end app, 
-  - Make sure to make changes in the `apache.conf` file for the respective app as well.
-      `/srv/users/serverpilot/apps/store-app/public => /srv/users/serverpilot/apps/store-app/dist`
+  - Make sure to make changes in the `/etc/apache/vhosts/<app>.conf` file for the respective app as well.
+      ```
+       /srv/users/serverpilot/apps/<app>/public => /srv/users/serverpilot/<app>/store-app/dist
+       service apache restart
+      ```
   - Ask the developer to copy `.htaccess` file from root folder to `public` folder in the app, so that during the build, it is pushed to the server.  
 - Once all this is done, ask the developer to push a new change from local system to the concerned branch.
 
