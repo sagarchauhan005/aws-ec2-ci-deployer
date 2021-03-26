@@ -27,7 +27,7 @@ This helps you set up CI-CD framework on your EC2 instance free of cost.
 - Run `./deployer.sh` and then follow the steps.
 - Make sure to enter the absolute path for your app. The path is ends at the root level of your app, do not go beyond that.  
 - Once all the steps are completed, visit the app in your app folder and run:
-  - ` git fetch origin <branch`
+  - ` git fetch origin <branch>`
 - This shall add the new host key generated in your known_hosts file for future push or pull.
 - [**Important**] If it is a front-end app, 
   - Make sure to make changes in the `apache.conf` file for the respective app as well.
