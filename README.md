@@ -17,9 +17,41 @@ This helps you set up CI-CD framework on your EC2 instance free of cost.
 
 # Installation
 
-- Clone this repo on your server.
-- Run `./deployer.sh` and then follow the below steps.
+- Clone this repo on your server at the root directory.
+- Make sure the server firewall and AWS Security Groups has allowed 9000 port access.
+- Go to your app root directory and git clone your directory by running the following command :
+  `git clone --depth 1 -b <branch> <repo_url>`
+- The above command makes sure that no extra branches and commit history is pulled in.
+- Run `./deployer.sh` and then follow the steps.
+- Make sure to enter the absolute path for your app. The path is ends at the root level of your app, do not go beyond that.  
+- Once all the steps are completed, visit the app in your app folder and run:
+  ` "git fetch origin <branch`
+- This shall add the new host key generated in your known_hosts file for future push or pull.
+- [**Important**] If it is a front-end app, 
+  - Make sure to make changes in the `apache.conf` file for the respective app as well.
+      `/srv/users/serverpilot/apps/store-app/public => /srv/users/serverpilot/apps/store-app/dist`
+  - Ask the developer to copy `.htaccess` file from root folder to `public` folder in the app, so that during the build, it is pushed to the server.  
+- Once all this is done, ask the developer to push a new change from local system to the concerned branch.
 
+# Error Description
+
+- `Hooks not found` OR `Hooks not satisfied`
+   - Webhook was not setup correctly, check `webhook/hooks.json` file for any possible error in json formatting
+   - If any issue found, fix it and then run :
+      ```
+     cp -R webhook/hooks.json /etc/webhook.conf
+     service webhook restart
+     ```
+- `git command is failing due to some reason`
+   - Check the `remote` path in `.git/config` file. After running `deployer.sh` it should be changed to `ssh` link from `https` link.
+   - SSH key fingerprint wasn't added for first time git pull or push.
+  
+- `Front-end app is not reachable`
+  - Check for the `.htaccess` file or `apache.conf` file for appropriate configuration.
+
+- `Any issues with webhook`
+  - Try running `service webhook restart`
+  
 # Important Steps
 
 - Use this command ONLY to clone any repo : 
