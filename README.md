@@ -20,12 +20,12 @@ This helps you set up CI-CD framework on your EC2 instance free of cost.
 - Clone this repo on your server at the root directory.
 - Make sure the server firewall and AWS Security Groups has allowed 9000 port access.
 - Go to your app root directory and git clone your directory by running the following command :
-  `git clone --depth 1 -b <branch> <repo_url>`
+  - `git clone --depth 1 -b <branch> <repo_url>`
 - The above command makes sure that no extra branches and commit history is pulled in.
 - Run `./deployer.sh` and then follow the steps.
 - Make sure to enter the absolute path for your app. The path is ends at the root level of your app, do not go beyond that.  
 - Once all the steps are completed, visit the app in your app folder and run:
-  ` "git fetch origin <branch`
+  - ` git fetch origin <branch`
 - This shall add the new host key generated in your known_hosts file for future push or pull.
 - [**Important**] If it is a front-end app, 
   - Make sure to make changes in the `apache.conf` file for the respective app as well.
