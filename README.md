@@ -17,7 +17,9 @@ This helps you set up CI-CD framework on your EC2 instance free of cost.
 
 # Installation
 
+- Login to your server using root user and type `cd ` to get into root directory.
 - Clone this repo on your server at the root directory.
+  `git clone https://github.com/sagarchauhan005/aws-ec2-continous-deployer.git`
 - Make sure the server firewall and AWS Security Groups has allowed 9000 port access.
 - Go to your app root directory and git clone your directory by running the following command :
   - `git clone --depth 1 -b <branch> <repo_url>`
@@ -50,7 +52,8 @@ This helps you set up CI-CD framework on your EC2 instance free of cost.
   - Check for the `.htaccess` file or `apache.conf` file for appropriate configuration.
 
 - `Any issues with webhook`
-  - Try running `service webhook restart`
+  - Try running `service webhook restart` or `service ssh restart`
+  - Enable `webhook history` in bitbucket to check the success of webhook calls.
   
 # Important Steps
 
