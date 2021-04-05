@@ -294,6 +294,7 @@ service webhook restart
 
 printf "${YELLOW}------------------------------------------------${NOCOLOR}"
 printf "${RED}Important Information${NOCOLOR}"
+printf "${GREEN}* In case of Github webhook, make sure Content type is application/json.${NOCOLOR}"
 printf "${GREEN}* Check is Host key is added in known hosts.${NOCOLOR}"
 printf "${GREEN}* Make sure AWS Port are allowed.${NOCOLOR}"
 printf "${GREEN}* In case webhook doesn't match, try restarting service webhook ${NOCOLOR}"
