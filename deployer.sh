@@ -146,7 +146,7 @@ if [[ "$GIT_SOURCE" == 1 ]]; then
   branch="refs/heads/$branch_name"
 
   sleep 1
-  printf "${GREEN}Enter your secret key (Please make sure this is unqiue. You need to paste the same in github account)${NOCOLOR}"
+  printf "${GREEN}Enter your secret key (Please make sure this is UNIQUE. You need to paste the same in github account)${NOCOLOR}"
   read -r secret
 
   sleep 1
@@ -175,6 +175,14 @@ if [[ "$GIT_SOURCE" == 1 ]]; then
       --arg deploy_script "$deploy_script" \
       '[{"id": $id,"execute-command": $deploy_script,"command-working-directory": $cwd,"response-message": "Executing deploy script...","trigger-rule": {"and":[{"match": {"type": "payload-hash-sha1","secret": $secret,"parameter": {"source": "header","name": "X-Hub-Signature"}}}, {"match": {"type": "value","value": $branch,"parameter": {"source": "payload","name": "ref"}}}]} }]' >"$hjson"
   fi
+
+  sleep 1
+  # shellcheck disable=SC2059
+  printf "${GREEN}Please copy the below webhook url. Paste the same in your github webhook${NOCOLOR}"
+  echo "==============================================================================================="
+  echo "http://$server_ip:9000/hooks/$app_name"
+  echo "==============================================================================================="
+  sleep 2
 
 fi
 
